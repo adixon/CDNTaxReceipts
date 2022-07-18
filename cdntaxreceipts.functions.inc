@@ -428,13 +428,9 @@ function _cdntaxreceipts_writeReceipt(&$pdf, $pdf_variables) {
   $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 6);
   $pdf->SetFont('Helvetica', 'B', 8);
   $pdf->Write(10, ts("Issue Date: %1", array(1 => $issued_on, 'domain' => 'org.civicrm.cdntaxreceipts')));
-  $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 10);
+  $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 12);
   $pdf->Write(10, ts("Received on: %1", array(1 => $display_date, 'domain' => 'org.civicrm.cdntaxreceipts')));
-  $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 14);
-  if ($location_issued) {
-    $pdf->Write(10, "Location receipt issued: " . $location_issued);
-    $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 18);
-  }
+  $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 18);
   $pdf->Write(10, ts("Eligible Amount:  $%1", array(1 => number_format($amount, 2), 'domain' => 'org.civicrm.cdntaxreceipts')));
   $pdf->SetXY($mymargin_left + $x_detailscolumn, $mymargin_top + $y_detailscolumnstart + 24);
   $pdf->Write(10, ts("Location Issued: %1", array(1 => $location_issued, 'domain' => 'org.civicrm.cdntaxreceipts')));
