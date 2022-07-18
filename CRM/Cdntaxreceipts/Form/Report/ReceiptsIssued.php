@@ -1,11 +1,8 @@
 <?php
 
-require_once('CRM/Report/Form.php');
-require_once('CRM/Utils/Type.php');
+use CRM_Cdntaxreceipts_ExtensionUtil as E;
 
 class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
-
-  protected $_where = NULL;
 
   function __construct() {
 
@@ -19,13 +16,14 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
         'fields' =>
         array(
           'sort_name' =>
-          array('title' => ts('Contact Name', array('domain' => 'org.civicrm.cdntaxreceipts')),
+          array('title' => E::ts('Contact Name (Current Value)'),
             'required' => TRUE,
           ),
           'id' =>
           array(
             'no_display' => TRUE,
             'required' => TRUE,
+            'type' => CRM_Utils_Type::T_INT,
           ),
         ),
         'grouping' => 'tax-fields',
@@ -43,11 +41,12 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
         'fields' =>
         array(
           'issued_on' => array('title' => 'Issued On', 'default' => TRUE,'type' => CRM_Utils_Type::T_TIMESTAMP,),
+          'location_issued' => array('title' => 'Location Issued', 'default' => FALSE,),
           'receipt_amount' => array('title' => 'Receipt Amount', 'default' => TRUE, 'type' => CRM_Utils_Type::T_MONEY,),
           'receipt_no' => array('title' => 'Receipt No.', 'default' => TRUE),
           'issue_type' => array('title' => 'Issue Type', 'default' => TRUE),
           'issue_method' => array('title' => 'Issue Method', 'default' => TRUE),
-          'uid' => array('title' => 'Issued By', 'default' => TRUE),
+          'uid' => array('title' => 'Issued By', 'default' => TRUE, 'type' => CRM_Utils_Type::T_INT),
           'receipt_status' => array('title' => 'Receipt Status', 'default' => TRUE,),
           'email_opened' => array('title' => 'Email Open Date', 'type' => CRM_Utils_Type::T_TIMESTAMP, 'default' => TRUE),
         ),
@@ -59,6 +58,11 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
             'title' => 'Issued On',
             'type' => CRM_Utils_Type::T_TIMESTAMP,
             'operatorType' => CRM_Report_Form::OP_DATE),
+          'location_issued' =>
+          array(
+            'title' => 'Location Issued',
+            'type' => CRM_Utils_Type::T_STRING,
+          ),
           'issue_type' =>
             array(
               'title' => ts('Issue Type'),
@@ -113,7 +117,49 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
         array(
           'contribution_id' => array(
             'default' => TRUE,
-            'dbAlias' => "GROUP_CONCAT(DISTINCT cdntaxreceipts_log_contributions_civireport.contribution_id ORDER BY cdntaxreceipts_log_contributions_civireport.contribution_id SEPARATOR ', ')", ),
+            'dbAlias' => "GROUP_CONCAT(DISTINCT cdntaxreceipts_log_contributions_civireport.contribution_id ORDER BY cdntaxreceipts_log_contributions_civireport.contribution_id SEPARATOR ', ')",
+            'type' => CRM_Utils_Type::T_INT,
+           ),
+        ),
+        'grouping' => 'tax-fields',
+      ),
+      'civicrm_line_item' => array(
+        'dao' => 'CRM_Price_DAO_LineItem',
+        'fields' => array(
+          'financial_type_id' => array(
+            'title' => E::ts('Financial Type (current value)'),
+            'default' => FALSE,
+            'type' => CRM_Utils_Type::T_STRING,
+            // look up words in alterDisplay
+            'dbAlias' => "GROUP_CONCAT(DISTINCT line_item_civireport.financial_type_id ORDER BY line_item_civireport.contribution_id, line_item_civireport.financial_type_id SEPARATOR ',')",
+          ),
+        ),
+        'filters' => array(),
+        'grouping' => 'tax-fields',
+      ),
+      'civicrm_contribution' => array(
+        'dao' => 'CRM_Contribute_DAO_Contribution',
+        'fields' => array(
+          'payment_instrument_id' => array(
+            'title' => E::ts('Payment Method (current value)'),
+            'default' => FALSE,
+            'type' => CRM_Utils_Type::T_STRING,
+            // look up words in alterDisplay
+            'dbAlias' => "GROUP_CONCAT(DISTINCT contribution_civireport.payment_instrument_id ORDER BY contribution_civireport.id, contribution_civireport.payment_instrument_id SEPARATOR ',')",
+          ),
+        ),
+        'filters' => array(
+          /* The problem with this is you then need to join on this table
+           * in the statistics section and it messes up the grouping because
+           * it's only expecting one table involved.
+           *
+          'payment_instrument_id' => array(
+            'title' => E::ts('Payment Method (current value)'),
+            'operatorType' => CRM_Report_Form::OP_MULTISELECT,
+            'options' => CRM_Contribute_BAO_Contribution::buildOptions('payment_instrument_id', 'get'),
+            'type' => CRM_Utils_Type::T_INT,
+          ),
+           */
         ),
         'grouping' => 'tax-fields',
       ),
@@ -165,8 +211,11 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
         INNER JOIN cdntaxreceipts_log_contributions {$this->_aliases['civicrm_cdntaxreceipts_log_contributions']}
                 ON {$this->_aliases['civicrm_cdntaxreceipts_log']}.id = {$this->_aliases['civicrm_cdntaxreceipts_log_contributions']}.receipt_id
         LEFT  JOIN civicrm_contact {$this->_aliases['civicrm_contact']}
-                ON {$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_cdntaxreceipts_log']}.contact_id ";
-
+                ON {$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_cdntaxreceipts_log']}.contact_id
+        LEFT  JOIN civicrm_contribution {$this->_aliases['civicrm_contribution']}
+                ON {$this->_aliases['civicrm_contribution']}.id = {$this->_aliases['civicrm_cdntaxreceipts_log_contributions']}.contribution_id
+        LEFT  JOIN civicrm_line_item {$this->_aliases['civicrm_line_item']}
+                ON {$this->_aliases['civicrm_line_item']}.contribution_id = {$this->_aliases['civicrm_cdntaxreceipts_log_contributions']}.contribution_id";
   }
 
   function where() {
@@ -295,6 +344,9 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
   function alterDisplay(&$rows) {
     // custom code to alter rows
     $entryFound = FALSE;
+    $defined_financial_types = CRM_Contribute_BAO_Contribution::buildOptions('financial_type_id', 'validate');
+    $defined_payment_methods = CRM_Contribute_BAO_Contribution::buildOptions('payment_instrument_id', 'validate');
+
     foreach ($rows as $rowNum => $row) {
 
       // change contact name with link
@@ -357,6 +409,24 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
         }
       }
 
+      if (array_key_exists('civicrm_line_item_financial_type_id', $row)) {
+        $financial_types = explode(',', $row['civicrm_line_item_financial_type_id']);
+        $financial_types = array_map(function($t) use ($defined_financial_types) {
+          return $defined_financial_types[$t] ?? E::ts('Unknown');
+        }, $financial_types);
+        $rows[$rowNum]['civicrm_line_item_financial_type_id'] = implode(', ', $financial_types);
+        $entryFound = TRUE;
+      }
+
+      if (array_key_exists('civicrm_contribution_payment_instrument_id', $row)) {
+        $payment_methods = explode(',', $row['civicrm_contribution_payment_instrument_id']);
+        $payment_methods = array_map(function($t) use ($defined_payment_methods) {
+          return $defined_payment_methods[$t] ?? E::ts('Unknown');
+        }, $payment_methods);
+        $rows[$rowNum]['civicrm_contribution_payment_instrument_id'] = implode(', ', $payment_methods);
+        $entryFound = TRUE;
+      }
+
       // skip looking further in rows, if first row itself doesn't
       // have the column we need
       if (!$entryFound) {
@@ -376,9 +446,11 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
                ROUND(AVG({$this->_aliases['civicrm_cdntaxreceipts_log']}.receipt_amount), 2) as avg
         ";
 
+    // @todo FIXME
+    $where = $this->getRidOfLineItemsAclWhere();
     $sql = "{$select}
       FROM cdntaxreceipts_log {$this->_aliases['civicrm_cdntaxreceipts_log']}
-      {$this->_where}";
+      {$where}";
 
     $dao = CRM_Core_DAO::executeQuery($sql);
 
@@ -403,5 +475,23 @@ class CRM_Cdntaxreceipts_Form_Report_ReceiptsIssued extends CRM_Report_Form {
     );
     return $statistics;
   }
+
+  /**
+   * @todo FIXME Core contains a built-in ACL on line items where it restricts
+   * the entity_table, but it messes up our grouping here. So as a quickfix
+   * this removes it. In this report we know the line items are always related
+   * to contributions, but this is still a bit risky and not the right way to
+   * do this.
+   * @return string
+   */
+  private function getRidOfLineItemsAclWhere(): string {
+    $where = $this->_where;
+    $lineItemsAclWhere = implode(' AND ', CRM_Price_BAO_LineItem::getSelectWhereClause($this->_aliases['civicrm_line_item']));
+    if (!empty($lineItemsAclWhere) && strpos($where, "AND $lineItemsAclWhere") !== FALSE) {
+      $where = str_replace("AND $lineItemsAclWhere", ' ', $where);
+    }
+    return $where;
+  }
+
 }
 
