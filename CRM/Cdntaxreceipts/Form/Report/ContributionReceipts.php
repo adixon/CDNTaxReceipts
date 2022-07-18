@@ -111,6 +111,93 @@ class CRM_Cdntaxreceipts_Form_Report_ContributionReceipts extends CRM_Report_For
         'fields' => array('email' => NULL),
         'grouping' => 'contact-fields',
       ),
+      'civicrm_cdntaxreceipts_log' =>
+      array(
+        'dao' => 'CRM_Contribute_DAO_Contribution',
+        'fields' =>
+        array(
+          'issued_on' => array('title' => 'Issued On', 'default' => TRUE,'type' => CRM_Utils_Type::T_TIMESTAMP,),
+          'location_issued' => array('title' => 'Location Issued', 'default' => FALSE,),
+          'receipt_amount' => array('title' => 'Receipt Amount', 'default' => TRUE, 'type' => CRM_Utils_Type::T_MONEY,),
+          'receipt_no' => array('title' => 'Receipt No.', 'default' => TRUE),
+          'issue_type' => array('title' => 'Issue Type', 'default' => TRUE),
+          'issue_method' => array('title' => 'Issue Method', 'default' => TRUE),
+          'uid' => array('title' => 'Issued By', 'default' => TRUE, 'type' => CRM_Utils_Type::T_INT),
+          'receipt_status' => array('title' => 'Receipt Status', 'default' => TRUE,),
+          'email_opened' => array('title' => 'Email Open Date', 'type' => CRM_Utils_Type::T_TIMESTAMP, 'default' => TRUE),
+        ),
+        'grouping' => 'tax-fields',
+        'filters' =>
+        array(
+          'issued_on' =>
+          array(
+            'title' => 'Issued On',
+            'type' => CRM_Utils_Type::T_TIMESTAMP,
+            'operatorType' => CRM_Report_Form::OP_DATE),
+          'location_issued' =>
+          array(
+            'title' => 'Location Issued',
+            'type' => CRM_Utils_Type::T_STRING,
+          ),
+          'issue_type' =>
+            array(
+              'title' => ts('Issue Type'),
+              'operatorType' => CRM_Report_Form::OP_MULTISELECT,
+              'options' => array('single' => ts('Single'), 'annual' => ts('Annual'), 'aggregate' => ts('Aggregate')),
+              'type' => CRM_Utils_Type::T_STRING,
+            ),
+          'issue_method' =>
+            array(
+            'title' => ts('Issue Method', array('domain' => 'org.civicrm.cdntaxreceipts')),
+            'operatorType' => CRM_Report_Form::OP_MULTISELECT,
+            'options' => array('email' => 'Email', 'print' => 'Print'),
+            'type' => CRM_Utils_Type::T_STRING,
+          ),
+          'receipt_status' =>
+            array(
+              'title' => ts('Receipt Status', array('domain' => 'org.civicrm.cdntaxreceipts')),
+              'operatorType' => CRM_Report_Form::OP_MULTISELECT,
+              'options' => array('issued' => 'Issued', 'cancelled' => 'Cancelled'),
+              'type' => CRM_Utils_Type::T_STRING,
+            ),
+          'email_opened' =>
+          array('title' => ts('Email Open Date', array('domain' => 'org.civicrm.cdntaxreceipts')),
+            'type' => CRM_Utils_Type::T_DATE,
+            'operatorType' => CRM_Report_Form::OP_DATE,
+          ),
+        ),
+        'order_bys' =>
+        array(
+          'issued_on' =>
+            array(
+              'title' => 'Issued On', 'default' => '1', 'default_weight' => '0', 'default_order' => 'DESC',
+            ),
+          'receipt_no' =>
+            array(
+              'title' => ts('Receipt No.', array('domain' => 'org.civicrm.cdntaxreceipts')),
+            ),
+          'receipt_amount' =>
+            array(
+              'title' => ts('Receipt Amount', array('domain' => 'org.civicrm.cdntaxreceipts')),
+            ),
+          'receipt_status' =>
+            array(
+              'title' => ts('Receipt Status', array('domain' => 'org.civicrm.cdntaxreceipts')),
+            ),
+        ),
+      ),
+      'civicrm_cdntaxreceipts_log_contributions' =>
+      array(
+        'dao' => 'CRM_Contribute_DAO_Contribution',
+        'fields' =>
+        array(
+          'contribution_id' => array(
+            'default' => TRUE,
+            'type' => CRM_Utils_Type::T_INT,
+           ),
+        ),
+        'grouping' => 'tax-fields',
+      ),
     );
     $this->_groupFilter = TRUE;
     $this->_tagFilter = TRUE;
@@ -128,9 +215,14 @@ class CRM_Cdntaxreceipts_Form_Report_ContributionReceipts extends CRM_Report_For
     $this->_from = "
       FROM  civicrm_contact {$this->_aliases['civicrm_contact']} {$this->_aclFrom}
         INNER JOIN civicrm_contribution {$this->_aliases['civicrm_contribution']}
-        ON {$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_contribution']}.contact_id
+        ON ({$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_contribution']}.contact_id
         AND {$this->_aliases['civicrm_contribution']}.is_test = 0
-        AND {$this->_aliases['civicrm_contribution']}.is_template = 0";
+        AND {$this->_aliases['civicrm_contribution']}.is_template = 0)
+        INNER JOIN cdntaxreceipts_log_contributions {$this->_aliases['civicrm_cdntaxreceipts_log_contributions']}
+                ON {$this->_aliases['civicrm_cdntaxreceipts_log_contributions']}.contribution_id = {$this->_aliases['civicrm_contribution']}.id
+        LEFT JOIN cdntaxreceipts_log {$this->_aliases['civicrm_cdntaxreceipts_log']}
+		ON {$this->_aliases['civicrm_cdntaxreceipts_log']}.id = {$this->_aliases['civicrm_cdntaxreceipts_log_contributions']}.receipt_id
+       ";
     $this->joinAddressFromContact();
     $this->joinEmailFromContact();
   }
