@@ -168,17 +168,6 @@ function cdntaxreceipts_civicrm_enable() {
 }
 
 /**
- * Implements hook_civicrm_entityTypes().
- *
- * Declare entity types provided by this module.
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_entityTypes
- */
-function cdntaxreceipts_civicrm_entityTypes(&$entityTypes) {
-  _cdntaxreceipts_civix_civicrm_entityTypes($entityTypes);
-}
-
-/**
  * Implements hook_civicrm_navigationMenu().
  *
  * Add entries to the navigation menu, automatically removed on uninstall
