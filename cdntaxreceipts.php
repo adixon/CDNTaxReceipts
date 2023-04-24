@@ -9,6 +9,7 @@ use CRM_Cdntaxreceipts_ExtensionUtil as E;
 define('CDNTAXRECEIPTS_MODE_BACKOFFICE', 1);
 define('CDNTAXRECEIPTS_MODE_PREVIEW', 2);
 define('CDNTAXRECEIPTS_MODE_WORKFLOW', 3);
+define('CDNTAXRECEIPTS_MODE_API', 4);
 
 /**
  * Implements hook_civicrm_buildForm().
@@ -141,6 +142,13 @@ function cdntaxreceipts_civicrm_permission( &$permissions ) {
   $permissions += [
     'issue cdn tax receipts' => $prefix . E::ts('Issue Tax Receipts'),
   ];
+}
+
+/**
+ * API should use the CDN Tax Receipts permission.
+ */
+function cdntaxreceipts_civicrm_alterAPIPermissions($entity, $action, &$params, &$permissions) {
+  $permissions['cdntaxreceipts']['generate'] = ['issue cdn tax receipts'];
 }
 
 /**
