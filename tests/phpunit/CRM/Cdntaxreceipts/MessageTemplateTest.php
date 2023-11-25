@@ -5,18 +5,18 @@
  */
 class CRM_Cdntaxreceipts_MessageTemplateTest extends CRM_Cdntaxreceipts_Base {
 
-  private $mut;
+  private $mut_cdntax;
 
   public function setUp(): void {
     parent::setUp();
     $this->setDeliveryMethod(CDNTAX_DELIVERY_PRINT_EMAIL);
     // We want to start spooling at different times in each test, so FALSE.
-    $this->mut = new CiviMailUtils($this, FALSE);
+    $this->mut_cdntax = new CiviMailUtils($this, FALSE);
   }
 
   public function tearDown(): void {
-    $this->mut->stop();
-    $this->mut->clearMessages();
+    $this->mut_cdntax->stop();
+    $this->mut_cdntax->clearMessages();
     $this->_tablesToTruncate = [
       'civicrm_contact',
     ];
@@ -43,12 +43,12 @@ class CRM_Cdntaxreceipts_MessageTemplateTest extends CRM_Cdntaxreceipts_Base {
     $contribution->id = $contribution_id;
     $contribution->find(TRUE);
     // issue receipt
-    $this->mut->start();
+    $this->mut_cdntax->start();
     list($result, $method) = cdntaxreceipts_issueTaxReceipt($contribution);
     $this->assertTrue($result);
     $this->assertEquals('email', $method);
 
-    $msgs = $this->mut->getAllMessages();
+    $msgs = $this->mut_cdntax->getAllMessages();
     $this->assertCount(2, $msgs);
 
     // First the one sent to the archive
@@ -80,7 +80,7 @@ class CRM_Cdntaxreceipts_MessageTemplateTest extends CRM_Cdntaxreceipts_Base {
    */
   public function testAttachedWorkflow() {
     \Civi::settings()->set('attach_to_workflows', TRUE);
-    $this->mut->start();
+    $this->mut_cdntax->start();
     // create contribution
     $contact_id = $this->individualCreate([], 1);
     $datestr = date('Y-m-d');
@@ -98,7 +98,7 @@ class CRM_Cdntaxreceipts_MessageTemplateTest extends CRM_Cdntaxreceipts_Base {
       'is_email_receipt' => 1,
     ]);
 
-    $msgs = $this->mut->getAllMessages();
+    $msgs = $this->mut_cdntax->getAllMessages();
     $this->assertCount(2, $msgs);
 
     // First the one sent to the archive.
