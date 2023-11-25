@@ -5,6 +5,8 @@
  */
 class CRM_Cdntaxreceipts_MessageTemplateTest extends CRM_Cdntaxreceipts_Base {
 
+  private $mut;
+
   public function setUp(): void {
     parent::setUp();
     $this->setDeliveryMethod(CDNTAX_DELIVERY_PRINT_EMAIL);
