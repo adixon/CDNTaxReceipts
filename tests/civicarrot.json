@@ -25,12 +25,12 @@
             "civicrm": "dev-master"
           },
           {
-            "php-versions": "CIVICARROT_PHP_SENSIBLE",
+            "php-versions": "8.1",
             "drupal": "CIVICARROT_DRUPAL_PRIOR",
             "civicrm": "CIVICARROT_CIVI_RELEASECANDIDATE"
           },
           {
-            "php-versions": "CIVICARROT_PHP_SENSIBLE",
+            "php-versions": "8.1",
             "drupal": "CIVICARROT_DRUPAL_PRIOR",
             "civicrm": "CIVICARROT_CIVI_LATEST"
           },
