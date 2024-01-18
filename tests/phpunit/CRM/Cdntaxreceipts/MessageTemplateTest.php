@@ -54,7 +54,7 @@ class CRM_Cdntaxreceipts_MessageTemplateTest extends CRM_Cdntaxreceipts_Base {
     // First the one sent to the archive
     $this->assertStringContainsString('From: CDN Tax Org <cdntaxorg@example.org>', $msgs[0]);
     $this->assertStringContainsString('To: "Mr. Joe Miller II" <cdntaxorg@example.org>', $msgs[0]);
-    $this->assertStringContainsString('Subject: Your tax receipt C-00000001', $msgs[0]);
+    $this->assertStringContainsString('Subject: [Archive Copy for joe_miller@civicrm.org] Your tax receipt C-00000001', $msgs[0]);
     $this->assertStringContainsString("Dear Joe,\n\nAttached please find your official tax receipt for income tax purposes.\n\nCDN Tax Org", $msgs[0]);
     $this->assertStringContainsString("<p>Dear Joe,<br />\n<br />\nAttached please find your official tax receipt for income tax purposes.<br />\n<br />\nCDN Tax Org</p>", $msgs[0]);
     $this->assertStringContainsString("Content-Type: application/pdf;\n name=Receipt-C-00000001-CDN_Tax_Org-Donation.pdf", $msgs[0]);
@@ -104,7 +104,7 @@ class CRM_Cdntaxreceipts_MessageTemplateTest extends CRM_Cdntaxreceipts_Base {
     // First the one sent to the archive.
     $this->assertStringContainsString('From: CDN Tax Org <cdntaxorg@example.org>', $msgs[0]);
     $this->assertStringContainsString('To: "Mr. Joe Miller II" <cdntaxorg@example.org>', $msgs[0]);
-    $this->assertStringContainsString('Subject: Your tax receipt C-00000001', $msgs[0]);
+    $this->assertStringContainsString('Subject: [Archive Copy for joe_miller@civicrm.org] Your tax receipt C-00000001', $msgs[0]);
     $this->assertStringContainsString("Content-Type: application/pdf;\n name=Receipt-C-00000001-CDN_Tax_Org-Donation.pdf", $msgs[0]);
     $this->assertStringContainsString("Content-Disposition: attachment;\n filename=Receipt-C-00000001-CDN_Tax_Org-Donation.pdf;", $msgs[0]);
     $this->assertStringNotContainsString('civicrm/cdntaxreceipts/open', $msgs[0]);

@@ -137,10 +137,12 @@ function cdntaxreceipts_processTaxReceipt($receipt, &$collectedPdf = NULL, $mode
 
       // send a copy (without open tracking) to the tax archive
       $sendTemplateParams['toEmail'] = $email_archive;
+      $sendTemplateParams['tplParams']['archive_extra'] = ['is_archive' => TRUE, 'contact_email' => $contact['email']];
       list($sent, $subject, $message, $html) = CRM_Core_BAO_MessageTemplate::sendTemplate($sendTemplateParams);
 
       // send a copy (with open tracking) to the donor
       if ($sent && $receipt['issue_method'] == 'email' && $mode != CDNTAXRECEIPTS_MODE_WORKFLOW) {
+        $sendTemplateParams['tplParams']['archive_extra']['is_archive'] = FALSE;
         $sendTemplateParams['toEmail'] = $contact['email'];
         $sendTemplateParams['tplParams']['openTracking'] = "<img src=\"" . CRM_Utils_System::baseURL() .
           "civicrm/cdntaxreceipts/open?r={$receipt['email_tracking_id']}\" width='1' height='1' alt='' border='0'>";
