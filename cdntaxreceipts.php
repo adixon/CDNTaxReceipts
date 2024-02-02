@@ -138,9 +138,9 @@ function cdntaxreceipts_civicrm_searchTasks($objectType, &$tasks) {
  * Implements hook_civicrm_permission().
  */
 function cdntaxreceipts_civicrm_permission( &$permissions ) {
-  $prefix = E::ts('CiviCRM CDN Tax Receipts') . ': ';
-  $permissions += [
-    'issue cdn tax receipts' => $prefix . E::ts('Issue Tax Receipts'),
+  $permissions['issue cdn tax receipts'] = [
+    'label' => E::ts('CiviCRM CDN Tax Receipts: Issue Tax Receipts'),
+    'description' => '',
   ];
 }
 
