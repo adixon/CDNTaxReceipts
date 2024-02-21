@@ -1459,7 +1459,8 @@ function _cdntaxreceipts_check_lineitems($contribution_id) {
     $line_item_totals += $line_item->line_total;
   }
 
-  if ($contribution['total_amount'] != $line_item_totals) {
+  // The cast to string is a quickfix to avoid rounding issues giving false positives.
+  if ($contribution['total_amount'] != (string) $line_item_totals) {
     CRM_Core_Error::statusBounce(
       ts('The total for contribution id <a %1>%2</a> does not match the line items. Please correct the contribution first.', [
         'domain' => 'org.civicrm.cdntaxreceipts',
