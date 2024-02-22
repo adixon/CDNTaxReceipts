@@ -791,7 +791,7 @@ function cdntaxreceipts_eligibleForReceipt( $contributionId ) {
   }
 
   // 1. check that contribution amount is deductible
-  $deductibleAmount = cdntaxreceipts_eligibleAmount($contributionId);;
+  $deductibleAmount = cdntaxreceipts_eligibleAmount($contributionId);
 
   // 2. we used to check here the financial type -- to see if it is deductible.
   // Since the introduction of split transactions (4.5 is the cleanest starting point, though they existed prior),
@@ -1459,8 +1459,8 @@ function _cdntaxreceipts_check_lineitems($contribution_id) {
     $line_item_totals += $line_item->line_total;
   }
 
-  // The cast to string is a quickfix to avoid rounding issues giving false positives.
-  if ($contribution['total_amount'] != (string) $line_item_totals) {
+  // @todo Note that in writeReceipt it uses number_format, but leaving writeReceipt as-is for now. It seems like both do rounding?
+  if ($contribution['total_amount'] != round($line_item_totals, 2)) {
     CRM_Core_Error::statusBounce(
       ts('The total for contribution id <a %1>%2</a> does not match the line items. Please correct the contribution first.', [
         'domain' => 'org.civicrm.cdntaxreceipts',
