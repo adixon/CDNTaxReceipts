@@ -123,7 +123,7 @@ If you need to customize the amount that is tax-deductible on a receipt, use thi
         return array(1000.00);
       }
       else {
-        return $contribution->total_amount - $contribution->non_deductible_amount;
+        return [$contribution->total_amount - $contribution->non_deductible_amount];
       }
     }
 ```
