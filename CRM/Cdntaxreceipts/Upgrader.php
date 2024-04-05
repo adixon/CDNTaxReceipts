@@ -3,7 +3,7 @@
 /**
  * Collection of upgrade steps
  */
-class CRM_Cdntaxreceipts_Upgrader extends CRM_Cdntaxreceipts_Upgrader_Base {
+class CRM_Cdntaxreceipts_Upgrader extends CRM_Extension_Upgrader_Base {
 
   // By convention, functions that look like "function upgrade_NNNN()" are
   // upgrade tasks. They are executed in order (like Drupal's hook_update_N).
@@ -14,14 +14,16 @@ class CRM_Cdntaxreceipts_Upgrader extends CRM_Cdntaxreceipts_Upgrader_Base {
   public function install() {
     $this->createTables();
 
+    // @todo If I put {ts} in here, then the htmlspecialchars lower down mangles the quotes/smarty. But it doesn't make sense to put {ts} in a quoted string in a php file since if it's not in a tpl file I don't think it will get extracted to transifex anyway.
     $email_message = '{$contact.email_greeting_display},
 
 Attached please find your official tax receipt for income tax purposes.
 
 {$orgName}';
-    $email_subject = 'Your tax receipt {$receipt.receipt_no}';
+    $email_subject = '{if $archive_extra.is_archive}[Archive Copy for {$archive_extra.contact_email}] {/if}Your tax receipt {$receipt.receipt_no}';
 
     $this->_create_message_template($email_message, $email_subject);
+    $this->_setSourceDefaults();
   }
 
   /**
@@ -194,6 +196,40 @@ AND COLUMN_NAME = 'receipt_status'");
     return TRUE;
   }
 
+  public function upgrade_1413() {
+    $this->_setSourceDefaults();
+    return TRUE;
+  }
+
+  /**
+   * Set the setting if in-kind financial type exists.
+   * If they've changed the name, there's not much we can do since we don't
+   * know which one it could be.
+   */
+  public function upgrade_1414() {
+    $financial_type_id = \Civi::settings()->get('cdntaxreceipts_inkind');
+    if (!$financial_type_id) {
+      $financial_type = \Civi\Api4\FinancialType::get(FALSE)->addSelect('id')->addWhere('name', '=', 'In-kind')->execute()->first();
+      if (!empty($financial_type['id'])) {
+        \Civi::settings()->set('cdntaxreceipts_inkind', $financial_type['id']);
+      }
+    }
+    return TRUE;
+  }
+
+  /**
+   * If they haven't customized the message template subject, update it.
+   */
+  public function upgrade_1415() {
+    $params = [
+      1 => ['Your tax receipt {$receipt.receipt_no}', 'String'],
+      // see note about ts in install() above
+      2 => ['{if $archive_extra.is_archive}[Archive Copy for {$archive_extra.contact_email}] {/if}Your tax receipt {$receipt.receipt_no}', 'String'],
+    ];
+    CRM_Core_DAO::executeQuery("UPDATE civicrm_msg_template SET msg_subject=%2 WHERE msg_subject=%1 AND workflow_name IN ('cdntaxreceipts_receipt_single', 'cdntaxreceipts_receipt_aggregate')", $params);
+    return TRUE;
+  }
+
   public function _create_message_template($email_message, $email_subject) {
 
     $html_message = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -267,6 +303,9 @@ AND COLUMN_NAME = 'receipt_status'");
       'is_reserved' => 0,
     );
     civicrm_api3('MessageTemplate', 'create', $params);
+    $params['is_default'] = 0;
+    $params['is_reserved'] = 1;
+    civicrm_api3('MessageTemplate', 'create', $params);
 
     $params = array(
       'msg_title' => 'CDN Tax Receipts - Email Annual/Aggregate Receipt',
@@ -278,8 +317,26 @@ AND COLUMN_NAME = 'receipt_status'");
       'is_reserved' => 0,
     );
     civicrm_api3('MessageTemplate', 'create', $params);
+    $params['is_default'] = 0;
+    $params['is_reserved'] = 1;
+    civicrm_api3('MessageTemplate', 'create', $params);
 
     return TRUE;
+  }
+
+  private function _setSourceDefaults() {
+    \Civi::settings()->set('cdntaxreceipts_source_field', '{contribution.source}');
+    $locales = CRM_Core_I18n::getMultilingual();
+    if ($locales) {
+      foreach ($locales as $locale) {
+        // The space in "Source: " is not a typo.
+        \Civi::settings()->set('cdntaxreceipts_source_label_' . $locale, ts('Source: ', array('domain' => 'org.civicrm.cdntaxreceipts')));
+      }
+    }
+    else {
+      // The space in "Source: " is not a typo.
+      \Civi::settings()->set('cdntaxreceipts_source_label_' . CRM_Core_I18n::getLocale(), ts('Source: ', array('domain' => 'org.civicrm.cdntaxreceipts')));
+    }
   }
 
   /**

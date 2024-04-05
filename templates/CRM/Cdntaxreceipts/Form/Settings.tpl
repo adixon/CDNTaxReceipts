@@ -107,6 +107,16 @@
 	      {else}<p class="label">Current {$form.receipt_pdftemplate.label}: {$receipt_pdftemplate}<span class="cdntaxreceipts-imagedelete"><a href="{crmURL p='civicrm/cdntaxreceipts/imagedelete' q='type=receipt_pdftemplate'}">{ts}Delete{/ts}</a></span></p>{/if}
 	  {/if}</td>
       </tr>
+      <tr>
+        <td class="label">{$form.source_field.label}</td>
+        <td class="content">{$form.source_field.html|crmAddClass:huge}&nbsp;<input class="crm-token-selector big" data-field="source_field" />
+          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Either replace with a token string or blank out to hide the field.{/ts}</td>
+      </tr>
+      <tr>
+        <td class="label">{$form.source_label.label}</td>
+        <td class="content">{$form.source_label.html}
+          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Label to use for the Source field. Include a space at the end to provide spacing between the label and the value.{/ts}</td>
+      </tr>
     </tbody>
   </table>
 
@@ -114,11 +124,26 @@
 
   <table class="form-layout">
     <tbody>
-      <tr>
+      {* If In-kind appears to already be at least partly configured, no point displaying the checkbox. *}
+      <tr {if $has_inkind_custom || $inkind_financial_type_is_known}style="display:none;"{/if}>
         <td class="label">{$form.issue_inkind.label}</td>
         <td class="content">{$form.issue_inkind.html}
-          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Checking this box will set up the fields required to generate in-kind tax receipts. Unchecking the box will not disable in-kind receipts: you will need to do that manually, by disabling the In-kind contribution type or making it non-deductible in the CiviCRM administration pages.{/ts}</p></td>
+          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}Checking this box will set up the fields required to generate in-kind tax receipts.{/ts}</p></td>
       </tr>
+      {* If they appear to have the custom fields but we don't know the financial type, this is probably a site where they changed the name before 1.9, so let them pick a type. *}
+      <tr {if !$has_inkind_custom || $inkind_financial_type_is_known}style="display:none;"{/if}>
+        <td class="label">{$form.inkind_financial_type.label}</td>
+        <td class="content">{$form.inkind_financial_type.html}
+          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}In-kind appears to have been previously enabled but the financial type for it may have changed. Please select the type you are using for In-kind.{/ts}</p></td>
+      </tr>
+      {* If we're sure about In-kind, display a confirmation it's set up. *}
+      {if $has_inkind_custom && $inkind_financial_type_is_known}
+      <tr>
+        <td class="label"><label>{ts domain='org.civicrm.cdntaxreceipts'}In-kind receipts:{/ts}</label></td>
+        <td class="content">{ts domain='org.civicrm.cdntaxreceipts'}Configured{/ts}
+          <p class="description">{ts domain='org.civicrm.cdntaxreceipts'}To disable in-kind receipts you will need to either disable the In-kind contribution type or make it non-deductible.{/ts}</p></td>
+      </tr>
+      {/if}
       <tr>
         <td class="label">{$form.delivery_method.label}</td>
         <td class="content">{$form.delivery_method.html}
@@ -166,3 +191,6 @@
 </div>
 
 </div>
+{* the InsertTokens needs this for some reason *}
+<div id="editMessageDetails"></div>
+{include file='CRM/Mailing/Form/InsertTokens.tpl'}
