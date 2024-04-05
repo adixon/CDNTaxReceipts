@@ -6,11 +6,11 @@
 </div>
   <table>
     <thead>
-      <th>{ts domain='org.civicrm.cdntaxreceipts'}{$receiptList.totals.original}Tax Receipt Status{/ts}</th>
-      <th>{ts domain='org.civicrm.cdntaxreceipts'}{$receiptList.totals.original}Total{/ts}</th>
+      <th>{ts domain='org.civicrm.cdntaxreceipts'}Tax Receipt Status{/ts}</th>
+      <th>{ts domain='org.civicrm.cdntaxreceipts'}Total{/ts}</th>
 {if $deliveryMethod neq '2'}
-      <th>{ts domain='org.civicrm.cdntaxreceipts'}{$receiptList.totals.original}Email{/ts}</th>
-      <th>{ts domain='org.civicrm.cdntaxreceipts'}{$receiptList.totals.original}Print{/ts}</th>
+      <th>{ts domain='org.civicrm.cdntaxreceipts'}Email{/ts}</th>
+      <th>{ts domain='org.civicrm.cdntaxreceipts'}Print{/ts}</th>
 {/if}
     </thead>
     <tr>
@@ -42,5 +42,5 @@
   </ul></p>
   <p>{$form.is_preview.html} {$form.is_preview.label} {ts domain='org.civicrm.cdntaxreceipts'}(Generates receipts marked 'preview', but does not issue the receipts.  No logging or emails sent.){/ts}</p>
 {/if}
-  <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl"}</div>
+  <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="bottom"}</div>
 </div>

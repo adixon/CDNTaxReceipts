@@ -5,16 +5,18 @@
  */
 class CRM_Cdntaxreceipts_MessageTemplateTest extends CRM_Cdntaxreceipts_Base {
 
+  private $mut_cdntax;
+
   public function setUp(): void {
     parent::setUp();
     $this->setDeliveryMethod(CDNTAX_DELIVERY_PRINT_EMAIL);
     // We want to start spooling at different times in each test, so FALSE.
-    $this->mut = new CiviMailUtils($this, FALSE);
+    $this->mut_cdntax = new CiviMailUtils($this, FALSE);
   }
 
   public function tearDown(): void {
-    $this->mut->stop();
-    $this->mut->clearMessages();
+    $this->mut_cdntax->stop();
+    $this->mut_cdntax->clearMessages();
     $this->_tablesToTruncate = [
       'civicrm_contact',
     ];
@@ -41,22 +43,22 @@ class CRM_Cdntaxreceipts_MessageTemplateTest extends CRM_Cdntaxreceipts_Base {
     $contribution->id = $contribution_id;
     $contribution->find(TRUE);
     // issue receipt
-    $this->mut->start();
+    $this->mut_cdntax->start();
     list($result, $method) = cdntaxreceipts_issueTaxReceipt($contribution);
     $this->assertTrue($result);
     $this->assertEquals('email', $method);
 
-    $msgs = $this->mut->getAllMessages();
+    $msgs = $this->mut_cdntax->getAllMessages();
     $this->assertCount(2, $msgs);
 
     // First the one sent to the archive
     $this->assertStringContainsString('From: CDN Tax Org <cdntaxorg@example.org>', $msgs[0]);
     $this->assertStringContainsString('To: "Mr. Joe Miller II" <cdntaxorg@example.org>', $msgs[0]);
-    $this->assertStringContainsString('Subject: Your tax receipt C-00000001', $msgs[0]);
+    $this->assertStringContainsString('Subject: [Archive Copy for joe_miller@civicrm.org] Your tax receipt C-00000001', $msgs[0]);
     $this->assertStringContainsString("Dear Joe,\n\nAttached please find your official tax receipt for income tax purposes.\n\nCDN Tax Org", $msgs[0]);
     $this->assertStringContainsString("<p>Dear Joe,<br />\n<br />\nAttached please find your official tax receipt for income tax purposes.<br />\n<br />\nCDN Tax Org</p>", $msgs[0]);
-    $this->assertStringContainsString("Content-Type: application/pdf;\n name=Receipt-C-00000001.pdf", $msgs[0]);
-    $this->assertStringContainsString("Content-Disposition: attachment;\n filename=Receipt-C-00000001.pdf;", $msgs[0]);
+    $this->assertStringContainsString("Content-Type: application/pdf;\n name=Receipt-C-00000001-CDN_Tax_Org-Donation.pdf", $msgs[0]);
+    $this->assertStringContainsString("Content-Disposition: attachment;\n filename=Receipt-C-00000001-CDN_Tax_Org-Donation.pdf;", $msgs[0]);
     $this->assertStringNotContainsString('civicrm/cdntaxreceipts/open', $msgs[0]);
     // We *could* check the base64 attachment to see if it matches the
     // expected, but we'd have to do the same timestamp fudge we do for mink
@@ -68,8 +70,8 @@ class CRM_Cdntaxreceipts_MessageTemplateTest extends CRM_Cdntaxreceipts_Base {
     $this->assertStringContainsString('Subject: Your tax receipt C-00000001', $msgs[1]);
     $this->assertStringContainsString("Dear Joe,\n\nAttached please find your official tax receipt for income tax purposes.\n\nCDN Tax Org", $msgs[1]);
     $this->assertStringContainsString("<p>Dear Joe,<br />\n<br />\nAttached please find your official tax receipt for income tax purposes.<br />\n<br />\nCDN Tax Org</p>", $msgs[1]);
-    $this->assertStringContainsString("Content-Type: application/pdf;\n name=Receipt-C-00000001.pdf", $msgs[1]);
-    $this->assertStringContainsString("Content-Disposition: attachment;\n filename=Receipt-C-00000001.pdf;", $msgs[1]);
+    $this->assertStringContainsString("Content-Type: application/pdf;\n name=Receipt-C-00000001-CDN_Tax_Org-Donation.pdf", $msgs[1]);
+    $this->assertStringContainsString("Content-Disposition: attachment;\n filename=Receipt-C-00000001-CDN_Tax_Org-Donation.pdf;", $msgs[1]);
     $this->assertStringContainsString('civicrm/cdntaxreceipts/open', $msgs[1]);
   }
 
@@ -78,7 +80,7 @@ class CRM_Cdntaxreceipts_MessageTemplateTest extends CRM_Cdntaxreceipts_Base {
    */
   public function testAttachedWorkflow() {
     \Civi::settings()->set('attach_to_workflows', TRUE);
-    $this->mut->start();
+    $this->mut_cdntax->start();
     // create contribution
     $contact_id = $this->individualCreate([], 1);
     $datestr = date('Y-m-d');
@@ -96,24 +98,23 @@ class CRM_Cdntaxreceipts_MessageTemplateTest extends CRM_Cdntaxreceipts_Base {
       'is_email_receipt' => 1,
     ]);
 
-    $msgs = $this->mut->getAllMessages();
+    $msgs = $this->mut_cdntax->getAllMessages();
     $this->assertCount(2, $msgs);
 
     // First the one sent to the archive.
     $this->assertStringContainsString('From: CDN Tax Org <cdntaxorg@example.org>', $msgs[0]);
     $this->assertStringContainsString('To: "Mr. Joe Miller II" <cdntaxorg@example.org>', $msgs[0]);
-    $this->assertStringContainsString('Subject: Your tax receipt C-00000001', $msgs[0]);
-    $this->assertStringContainsString("Content-Type: application/pdf;\n name=Receipt-C-00000001.pdf", $msgs[0]);
-    $this->assertStringContainsString("Content-Disposition: attachment;\n filename=Receipt-C-00000001.pdf;", $msgs[0]);
+    $this->assertStringContainsString('Subject: [Archive Copy for joe_miller@civicrm.org] Your tax receipt C-00000001', $msgs[0]);
+    $this->assertStringContainsString("Content-Type: application/pdf;\n name=Receipt-C-00000001-CDN_Tax_Org-Donation.pdf", $msgs[0]);
+    $this->assertStringContainsString("Content-Disposition: attachment;\n filename=Receipt-C-00000001-CDN_Tax_Org-Donation.pdf;", $msgs[0]);
     $this->assertStringNotContainsString('civicrm/cdntaxreceipts/open', $msgs[0]);
 
     // Now the second one for the contribution receipt
     $this->assertStringContainsString('From: FIXME <info@EXAMPLE.ORG>', $msgs[1]);
     $this->assertStringContainsString('To: "Mr. Joe Miller II" <joe_miller@civicrm.org>', $msgs[1]);
     $this->assertStringContainsString('Subject: Receipt - Contribution - Mr. Joe Miller II', $msgs[1]);
-    // @todo - is this a bug in cdntax? Why does it start with forward '/'?
-    $this->assertStringContainsString("Content-Type: application/pdf;\n name=\"/Receipt-C-00000001.pdf\"", $msgs[1]);
-    $this->assertStringContainsString("Content-Disposition: attachment;\n filename=\"/Receipt-C-00000001.pdf\";", $msgs[1]);
+    $this->assertStringContainsString("Content-Type: application/pdf;\n name=Receipt-C-00000001-CDN_Tax_Org-Donation.pdf", $msgs[1]);
+    $this->assertStringContainsString("Content-Disposition: attachment;\n filename=Receipt-C-00000001-CDN_Tax_Org-Donation.pdf;", $msgs[1]);
 
     \Civi::settings()->set('attach_to_workflows', FALSE);
   }

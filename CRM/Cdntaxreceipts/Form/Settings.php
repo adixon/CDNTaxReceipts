@@ -41,9 +41,12 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
     // Set image defaults
     $images = array('receipt_logo', 'receipt_signature', 'receipt_watermark', 'receipt_pdftemplate');
     foreach ($images as $image) {
+      $this->assign($image, NULL);
+      $this->assign($image.'_class', FALSE);
       if (!empty($defaults[$image])) {
         $this->assign($image, $defaults[$image]);
         if (!file_exists(CRM_Core_Config::singleton()->customFileUploadDir . $defaults[$image])) {
+          // @todo: why is this variable called _class?
           $this->assign($image.'_class', TRUE);
         }
       }
@@ -137,11 +140,19 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
       $this->addElement('file', 'receipt_pdftemplate', ts('PDF Template', array('domain' => 'org.civicrm.cdntaxreceipts')), 'size=30 maxlength=60');
       $this->addUploadElement('receipt_pdftemplate');
       $this->addRule( 'receipt_pdftemplate', ts('File size should be less than %1 MBytes (%2 bytes)', array(1 => $uploadSize, 2 => $uploadFileSize)), 'maxfilesize', $uploadFileSize, array('domain' => 'org.civicrm.cdntaxreceipts') );
+
+      $tokenProcessor = new \Civi\Token\TokenProcessor(Civi::dispatcher(), ['schema' => ['contactId', 'contributionId']]);
+      $source_field_tokens = $tokenProcessor->listTokens();
+      $this->assign('tokens', CRM_Utils_Token::formatTokensForDisplay($source_field_tokens));
+      $this->addElement('text', 'source_field', ts('Source Field Value', array('domain' => 'org.civicrm.cdntaxreceipts')));
+      $this->addElement('text', 'source_label', ts('Source Field Label (%1)', array(1 => CRM_Core_I18n::getLocale(), 'domain' => 'org.civicrm.cdntaxreceipts')));
     }
     else if ( $mode == 'defaults' ) {
       $defaults = array(
         'receipt_prefix' => Civi::settings()->get('receipt_prefix'),
         'receipt_authorized_signature_text' => Civi::settings()->get('receipt_authorized_signature_text'),
+        'source_field' => Civi::settings()->get('cdntaxreceipts_source_field') ?? '',
+        'source_label' => Civi::settings()->get('cdntaxreceipts_source_label_' . CRM_Core_I18n::getLocale()) ?? '',
       );
       return $defaults;
     }
@@ -149,6 +160,8 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
       $values = $this->exportValues();
       Civi::settings()->set('receipt_prefix', $values['receipt_prefix']);
       Civi::settings()->set('receipt_authorized_signature_text', $values['receipt_authorized_signature_text']);
+      Civi::settings()->set('cdntaxreceipts_source_field', $values['source_field']);
+      Civi::settings()->set('cdntaxreceipts_source_label_' . CRM_Core_I18n::getLocale(), $values['source_label']);
 
       foreach ( array('receipt_logo', 'receipt_signature', 'receipt_watermark', 'receipt_pdftemplate') as $key ) {
         $upload_file = $this->getSubmitValue($key);
@@ -168,6 +181,14 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
   function processSystemOptions($mode) {
     if ( $mode == 'build' ) {
       $this->addElement('checkbox', 'issue_inkind', ts('Setup in-kind receipts?', array('domain' => 'org.civicrm.cdntaxreceipts')));
+      // We may not know the financial type, but maybe the custom fields are present.
+      $this->assign('inkind_financial_type_is_known', (bool) Civi::settings()->get('cdntaxreceipts_inkind'));
+      $inkind_custom = \Civi\Api4\CustomGroup::get(FALSE)
+        ->addSelect('id')
+        ->addWhere('name', '=', 'In_kind_donation_fields')
+        ->execute()->first();
+      $this->assign('has_inkind_custom', !empty($inkind_custom['id']));
+      $this->addEntityRef('inkind_financial_type', ts('In-kind Financial Type', array('domain' => 'org.civicrm.cdntaxreceipts')), ['entity' => 'FinancialType']);
 
       $delivery_options = array();
       $delivery_options[] = $this->createElement('radio', NULL, NULL, 'Print only', CDNTAX_DELIVERY_PRINT_ONLY);
@@ -190,6 +211,7 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
     else if ( $mode == 'defaults' ) {
       $defaults = array(
         'issue_inkind' => 0,
+        'inkind_financial_type' => Civi::settings()->get('cdntaxreceipts_inkind') ?? 0,
         'delivery_method' => Civi::settings()->get('delivery_method') ?? CDNTAX_DELIVERY_PRINT_ONLY,
         'attach_to_workflows' => Civi::settings()->get('attach_to_workflows') ?? 0,
         'enable_advanced_eligibility_report' => Civi::settings()->get('enable_advanced_eligibility_report') ?? 0,
@@ -201,6 +223,9 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
       Civi::settings()->set('delivery_method', $values['delivery_method']);
       Civi::settings()->set('attach_to_workflows', $values['attach_to_workflows']);
       Civi::settings()->set('enable_advanced_eligibility_report', $values['enable_advanced_eligibility_report']);
+      if (!empty($values['inkind_financial_type'])) {
+        Civi::settings()->set('cdntaxreceipts_inkind', $values['inkind_financial_type']);
+      }
       if (isset($values['issue_inkind']) == TRUE) {
         if ( $values['issue_inkind'] == 1 ) {
           cdntaxreceipts_configure_inkind_fields();
@@ -240,5 +265,7 @@ class CRM_Cdntaxreceipts_Form_Settings extends CRM_Core_Form {
 
     $statusMsg = ts('Your settings have been saved.', array('domain' => 'org.civicrm.cdntaxreceipts'));
     CRM_Core_Session::setStatus( $statusMsg, '', 'success' );
+    // This is needed since otherwise it doesn't seem to show the recent changes.
+    CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/cdntaxreceipts/settings', 'reset=1'));
   }
 }
